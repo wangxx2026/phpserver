@@ -13,7 +13,7 @@ class zmq_server extends server_abstract
 	private $__port;
 	private $__base;
 	
-	private $__process_num = 10;
+	private $__process_num = 1;
 	
 	private $__request_max = 1000;
 	/**
@@ -42,7 +42,9 @@ class zmq_server extends server_abstract
 		$server->bind('tcp://'. $this->__host . ':' . $this->__port);
 		
 		$fd = $server->getSockOpt(ZMQ::SOCKOPT_FD);
-		$protocol = substr(stream_get_meta_data($fd), 0, 3);
+        
+        $stream_info = stream_get_meta_data($fd);
+		$protocol = substr($stream_info['stream_type'], 0, 3);
 		
 		$this->set_process_name($protocol . 'master');
 		
@@ -88,9 +90,9 @@ class zmq_server extends server_abstract
 	{
 		// 数据接收
 		
-		$content = $this->recv();
+		$content = $this->recv($server);
 		// 数据发送
-		$arg->send("Got msg $msgs");
+		$server->send("Got msg 123");
 	}
 	/**
 	 * 接收数据
@@ -131,7 +133,7 @@ class zmq_server extends server_abstract
 	{
 		if (function_exists('cli_set_process_title'))
 		{
-			@cli_set_process_title($title);
+			@cli_set_process_title('phpserver:' . $title);
 		}
 	}
 }
