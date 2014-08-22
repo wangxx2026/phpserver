@@ -31,4 +31,5 @@ class master
 			die('setsid failed');
 		}
 	}
+	
 }

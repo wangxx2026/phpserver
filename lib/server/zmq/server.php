@@ -12,6 +12,7 @@ class zmq_server extends server_abstract
 	private $__host;
 	private $__port;
 	private $__base;
+	private $__protocol;
 	
 	private $__process_num = 1;
 	
@@ -25,7 +26,6 @@ class zmq_server extends server_abstract
 	{		
 		$this->__host = $host;
 		$this->__port = $port;
-		$this->__base = event_base_new();
 		
 		$this->server();
 	}
@@ -44,15 +44,16 @@ class zmq_server extends server_abstract
 		$fd = $server->getSockOpt(ZMQ::SOCKOPT_FD);
         
         $stream_info = stream_get_meta_data($fd);
-		$protocol = substr($stream_info['stream_type'], 0, 3);
+		$this->protocol = substr($stream_info['stream_type'], 0, 3);
 		
-		$this->set_process_name($protocol . 'master');
+		$this->set_process_name('master');
 		
 		for($i = 0; $i < $this->__process_num; ++$i)
 		{
-			$this->spawnworkder();
+			$this->spawnworker();
 		}
 		
+		$this->__base = event_base_new();
 		$event = event_new();
 		
 		event_set($event, $fd, EV_READ | EV_PERSIST, array($this, 'accept'), $server);
@@ -118,13 +119,13 @@ class zmq_server extends server_abstract
 		
 	}
 	
-	public function spawnworkder()
+	public function spawnworker()
 	{
 		$pid = pcntl_fork();
 		
 		if($pid > 0)
 		{
-			return ;
+			return;
 		}
 		$this->set_process_name('worker');
 	}
@@ -133,7 +134,7 @@ class zmq_server extends server_abstract
 	{
 		if (function_exists('cli_set_process_title'))
 		{
-			@cli_set_process_title('phpserver:' . $title);
+			@cli_set_process_title('phpserver:' . $this->protocol . $title);
 		}
 	}
 }
