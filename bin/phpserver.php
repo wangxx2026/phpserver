@@ -2,12 +2,9 @@
 define('APP_PATH', realpath(__DIR__) . '/');
 define('ROOT_PATH', APP_PATH .'../');
 
-var_dump($argv);
-die();
+define('LIB_PATH', ROOT_PATH . 'lib/');
 
-require ROOT_PATH . 'lib/proc/master.php';
-require ROOT_PATH . 'lib/server/server.php';
+require LIB_PATH . 'Master.php';
 
-$master = new master();
-
-$server = new lib_server('127.0.0.1', '7001');
+$obj = new Master();
+$obj->run('tcp://127.0.0.1:7001');
