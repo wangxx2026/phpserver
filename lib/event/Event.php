@@ -28,7 +28,8 @@ class Event_Event
     public function del($fd, $flag)
     {
     	$event_key = (int)$fd;
-    	event_del($this->__all_event[$event_key]);
+    	event_del($this->__all_event[$event_key][$flag]);
+        unset($this->__all_event[$event_key][$flag]);
     }
 
     public function loop()

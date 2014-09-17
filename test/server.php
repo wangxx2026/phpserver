@@ -30,6 +30,28 @@ class server
 		$backend->bind("ipc://backend");
 		$fd_backend = $backend->getSockOpt(ZMQ::SOCKOPT_FD);
 
+        
+        /*$read = $write = array();
+        //  Switch messages between frontend and backend
+        while (true) {
+            $poll = new ZMQPoll();
+            $poll->add($frontend, ZMQ::POLL_IN);
+            $poll->add($backend, ZMQ::POLL_IN);
+
+            $poll->poll($read, $write);
+            foreach ($read as $socket) {
+                $content = $socket->recvMulti();
+                if ($socket === $frontend) {
+                    //echo "Request from client:";
+                    //echo $zmsg->__toString();
+                    $backend->sendMulti($content);
+                } elseif ($socket === $backend) {
+                    //echo "Request from worker:";
+                    //echo $zmsg->__toString();
+                    $frontend->sendMulti($content);
+                }
+            }
+        }*/
 		
 		$event = event_new();
 		event_set($event, $fd_frontend, EV_READ | EV_PERSIST, array($this, 'accept'), array($frontend, $backend));
@@ -37,7 +59,7 @@ class server
 		event_add($event);
 
 		$event2 = event_new();
-		event_set($event2, $fd_backend, EV_READ | EV_PERSIST, array($this, 'send'), array($backend, $frontend));
+		event_set($event2, $fd_backend, EV_READ | EV_PERSIST, array($this, 'send_msg'), array($backend, $frontend));
 		event_base_set($event2, $this->__event_base);
 		event_add($event2);
 		
@@ -47,26 +69,27 @@ class server
 		
 	}
 	
-	public function accept($fd, $event, $arg)
+	public function accept($fd, $event, $args)
 	{
 		echo 'CALLBACK FIRED' . PHP_EOL;
 		
-		if($arg[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
+		if($args[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $arg[0]->recvMulti();
+			$content = $this->recv($args[0]);
 			$content[2] .= '2';
-			$res = $arg[1]->sendMulti($content);
+			$res = $this->send($args[1], $content);
 		}
 	}
 	
-	public function send($fd, $event, $arg)
+	public function send_msg($fd, $event, $arg)
 	{
 		echo 'CALLBACK FIRED2' . PHP_EOL;
 		if($arg[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $arg[0]->recvMulti();
+			$content = $this->recv($arg[0]);
 			$content[2] .= '3';
-			$arg[1]->sendMulti($content);
+            var_dump($content);
+			$this->send($arg[1], $content);
 		}
 	}
 	
@@ -77,6 +100,21 @@ class server
 		$worker = new ZMQSocket($context, ZMQ::SOCKET_DEALER);
 		$worker->connect('ipc://backend');
 		$fd_worker = $worker->getSockOpt(ZMQ::SOCKOPT_FD);
+
+        //while (true) {
+            //  The DEALER socket gives us the address envelope and message
+            //$content = $worker->recvMulti();
+            //var_dump($content);
+            //$worker->sendMulti($content);
+            // Send 0..4 replies back
+            /*$replies = rand(0,4);
+            for ($reply = 0; $reply < $replies; $reply++) {
+                //  Sleep for some fraction of a second
+                usleep(rand(0,1000) + 1);
+                $zmsg->send(false);
+            }*/
+
+       // }
 		
 		$event_base = event_base_new();
 		$event = event_new();
@@ -87,19 +125,19 @@ class server
 		event_base_loop($event_base);
 	}
 	
-	public function worker_deal($fd, $event, $arg)
+	public function worker_deal($fd, $event, $args)
 	{
 		echo 'CALLBACK FIRED3' . PHP_EOL;
-		if($arg->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
+		if($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $arg->recvMulti();
-			$count = count($content);
+			$content = $this->recv($args);;
+            $content[2] .= '4';
 			var_dump($content);
 			
-			var_dump($arg->getSockOpt(ZMQ::SOCKOPT_EVENTS));
+			//var_dump($arg->getSockOpt(ZMQ::SOCKOPT_EVENTS));
 			
-			$res = $arg->sendMulti($content);
-			var_dump($res);
+			$res = $this->send($args, $content);
+			//var_dump($res);
 			
 			/*foreach($content as $v)
 			{
@@ -108,6 +146,32 @@ class server
 			}*/
 		}
 	}
+
+    public function recv($socket)
+    {
+        $content = array();
+        while(true)
+        {
+            $content[] = $socket->recv();
+            $more = $socket->getSockOpt(ZMQ::SOCKOPT_RCVMORE);
+            if(!$more)
+            {
+                break;
+            }
+        }
+        return $content;
+    }
+
+    public function send($socket, $content)
+    {
+        $count = count($content);
+        $i = 1;
+        foreach($content as $val)
+        {
+            $mode = ($i++ == $count) ? NULL : ZMQ::MODE_SNDMORE;
+            $socket->send($val, $mode);
+        }
+    }
 }
 
 

@@ -7,8 +7,16 @@ $client->connect('tcp://127.0.0.1:7001');
 
 $frames = [''];
 $frames[] = 'Hello World';
+$i = 1;
+$count = count($frames);
+foreach($frames as $v)
+{
+    $mode = ($i++ == $count) ? NULL : ZMQ::MODE_SNDMORE;
+    $client->send($v, $mode);
+}
 $client->sendMulti($frames);
 
 $msg = $client->recvMulti();
 
 var_dump($msg);
+

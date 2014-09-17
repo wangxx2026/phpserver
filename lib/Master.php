@@ -67,13 +67,13 @@ class Master
      */
     protected function loop()
     {
-    	while(true)
+    	/*while(true)
     	{
         	while(pcntl_waitpid(-1,$status, WNOHANG))
         	{
             	// 进程退出，创建新的进程
         	}
-    	}
+    	}*/
     }
 
 
@@ -96,7 +96,7 @@ class Master
     		
     		$file = str_replace('_', DIRECTORY_SEPARATOR, $classname);
     		
-    		require LIB_PATH . $file . '.php';
+    		require LIB_PATH . lcfirst($file) . '.php';
     	}
     }
     

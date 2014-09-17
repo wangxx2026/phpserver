@@ -29,6 +29,13 @@ class Proccess_Worker
 			$content = $args->recvMulti();
 			var_dump($content);
 			$args->sendMulti($content);
+            //$this->close_client($fd, EV_READ | EV_PERSIST);
 		}
 	}
+
+    public function close_client($fd, $flag)
+    {
+        $this->__event->del($fd, $flag);
+        fclose($fd);
+    }
 }
