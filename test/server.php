@@ -82,17 +82,19 @@ class server
 		if($args[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
 			$content = $args[0]->recvMulti();
-            self::$content_accept[$content[0]] = $content;
+            var_dump($content);
+            $args[1]->sendMulti($content);
+            //self::$content_accept[$content[0]] = $content;
 		}
 
-        if($args[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        /*if($args[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
         {
             foreach(self::$content_accept as  $v)
             {
                 $res = $args[1]->sendMulti($v);
                 unset(self::$content_accept[$v[0]]);
             }
-        }
+        }*/
         /*if($args[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
         {
             $args[1]->sendMulti($content);
@@ -105,20 +107,22 @@ class server
 		echo 'CALLBACK FIRED2' . PHP_EOL;
 		if($arg[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $arg[1]->recvMulti();
+			$content = $arg[0]->recvMulti();
 			$content[2] .= '2';
             var_dump($content);
-            self::$content_send[$content[0]] = $content;
+            var_dump($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT);
+            $arg[1]->sendMulti($content);
+            //self::$content_send[$content[0]] = $content;
 		}
 
-        if($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        /*if($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
         {
             foreach(self::$content_send as $v)
             {
                 $arg[1]->sendMulti($v);
                 unset(self::$content_send[$v[0]]);
             }
-        }
+        }*/
 	}
 	
 	public function server_worker()
@@ -160,7 +164,10 @@ class server
 		{
 			$content = $args->recvMulti();;
             $content[2] .= '3';
-			self::$content_worker[$content[0]] = $content;
+            var_dump($content);
+			//self::$content_worker[$content[0]] = $content;
+            var_dump($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT);
+            $args->sendMulti($content);
 
 			//var_dump($arg->getSockOpt(ZMQ::SOCKOPT_EVENTS));
 			
@@ -174,14 +181,14 @@ class server
 			}*/
 		}
 
-        if($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        /*if($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
         {
             foreach(self::$content_worker as $v)
             {
                 $args->sendMulti($v);
                 unset(self::$content_worker[$v[0]]);
             }
-        }
+        }*/
 
 	}
 }
