@@ -3,7 +3,13 @@
 class server
 {
 
-	private $__event_base = NULL;
+	private $__event_base           = NULL;
+
+    public static $content_accept   = array();
+
+    public static $content_worker   = array();
+
+    public static $content_send     = array();
 	
 	public function __construct($host)
 	{
@@ -75,10 +81,23 @@ class server
 		
 		if($args[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $this->recv($args[0]);
-			$content[2] .= '2';
-			$res = $this->send($args[1], $content);
+			$content = $args[0]->recvMulti();
+            self::$content_accept[$content[0]] = $content;
 		}
+
+        if($args[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        {
+            foreach(self::$content_accept as  $v)
+            {
+                $res = $args[1]->sendMulti($v);
+                unset(self::$content_accept[$v[0]]);
+            }
+        }
+        /*if($args[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        {
+            $args[1]->sendMulti($content);
+        }*/
+
 	}
 	
 	public function send_msg($fd, $event, $arg)
@@ -86,11 +105,20 @@ class server
 		echo 'CALLBACK FIRED2' . PHP_EOL;
 		if($arg[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $this->recv($arg[0]);
-			$content[2] .= '3';
+			$content = $arg[1]->recvMulti();
+			$content[2] .= '2';
             var_dump($content);
-			$this->send($arg[1], $content);
+            self::$content_send[$content[0]] = $content;
 		}
+
+        if($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
+        {
+            foreach(self::$content_send as $v)
+            {
+                $arg[1]->sendMulti($v);
+                unset(self::$content_send[$v[0]]);
+            }
+        }
 	}
 	
 	public function server_worker()
@@ -130,13 +158,13 @@ class server
 		echo 'CALLBACK FIRED3' . PHP_EOL;
 		if($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN)
 		{
-			$content = $this->recv($args);;
-            $content[2] .= '4';
-			var_dump($content);
-			
+			$content = $args->recvMulti();;
+            $content[2] .= '3';
+			self::$content_worker[$content[0]] = $content;
+
 			//var_dump($arg->getSockOpt(ZMQ::SOCKOPT_EVENTS));
 			
-			$res = $this->send($args, $content);
+
 			//var_dump($res);
 			
 			/*foreach($content as $v)
@@ -145,33 +173,17 @@ class server
 				$arg->sendMulti($content);
 			}*/
 		}
-	}
 
-    public function recv($socket)
-    {
-        $content = array();
-        while(true)
+        if($args->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT)
         {
-            $content[] = $socket->recv();
-            $more = $socket->getSockOpt(ZMQ::SOCKOPT_RCVMORE);
-            if(!$more)
+            foreach(self::$content_worker as $v)
             {
-                break;
+                $args->sendMulti($v);
+                unset(self::$content_worker[$v[0]]);
             }
         }
-        return $content;
-    }
 
-    public function send($socket, $content)
-    {
-        $count = count($content);
-        $i = 1;
-        foreach($content as $val)
-        {
-            $mode = ($i++ == $count) ? NULL : ZMQ::MODE_SNDMORE;
-            $socket->send($val, $mode);
-        }
-    }
+	}
 }
 
 
