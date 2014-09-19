@@ -110,8 +110,11 @@ class server
 			$content = $arg[0]->recvMulti();
 			$content[2] .= '2';
             var_dump($content);
-            var_dump($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT);
+            //var_dump($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_OUT);
             $arg[1]->sendMulti($content);
+            //var_dump($arg[0]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN);
+            //var_dump($arg[1]->getSockOpt(ZMQ::SOCKOPT_EVENTS) & ZMQ::POLL_IN);
+
             //self::$content_send[$content[0]] = $content;
 		}
 
