@@ -1,4 +1,6 @@
 <?php
+for(;;)
+{
 $client = new ZMQSocket(new ZMQContext(), ZMQ::SOCKET_DEALER);
 
 $identity = sprintf('%04X', rand(0, 0x10000));
@@ -14,4 +16,4 @@ $client->sendMulti($frames);
 $msg = $client->recvMulti();
 
 var_dump($msg);
-
+}
